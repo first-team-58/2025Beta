@@ -11,6 +11,7 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -18,6 +19,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.generated.TunerConstants;
+import frc.robot.requests.DriveToPoseRequest;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.util.DriveHelper;
 
@@ -36,6 +38,9 @@ public class RobotContainer {
                                                                // motors
 
   private final SwerveRequest.FieldCentricFacingAngle facingAngle = new SwerveRequest.FieldCentricFacingAngle();
+  // Create and apply the request
+  Pose2d target = new Pose2d(3.0, 2.0, new Rotation2d(Math.toRadians(90)));
+  DriveToPoseRequest driveToPoseRequest = new DriveToPoseRequest(target);
 
   private final Telemetry logger = new Telemetry(MaxSpeed);
 
@@ -92,6 +97,11 @@ public class RobotContainer {
                     DriveHelper.angleToSpeaker(drivetrain
                         .getState().Pose,
                         drivetrain.getState().Speeds))));
+
+    // **New Code Here**: Pressing POV left triggers a command to drive to (2,2)
+    driverController.povLeft().whileTrue(drivetrain.applyRequest(() -> driveToPoseRequest));
+
+    driverController.back().onTrue(drivetrain.runOnce(() -> drivetrain.resetPose(new Pose2d(0, 0, new Rotation2d(0)))));
 
     // reset the field-centric heading on start button
     driverController.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
