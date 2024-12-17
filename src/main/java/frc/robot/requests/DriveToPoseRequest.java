@@ -1,12 +1,15 @@
 package frc.robot.requests;
 
 import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveControlParameters;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import frc.robot.Constants;
 import frc.robot.generated.TunerConstants;
 
 /**
@@ -21,7 +24,7 @@ import frc.robot.generated.TunerConstants;
  */
 public class DriveToPoseRequest implements SwerveRequest {
 
-    private final Pose2d targetPose;
+    private Pose2d targetPose;
 
     // Simple gains and tolerances
     private static final double DRIVE_KP = 1.0; // Proportional gain for drive
@@ -34,8 +37,9 @@ public class DriveToPoseRequest implements SwerveRequest {
      * 
      * @param targetPose The desired final pose of the robot.
      */
-    public DriveToPoseRequest(Pose2d targetPose) {
+    public DriveToPoseRequest withPose(Pose2d targetPose) {
         this.targetPose = targetPose;
+        return this;
     }
 
     @Override
@@ -63,12 +67,12 @@ public class DriveToPoseRequest implements SwerveRequest {
         // Compute speed commands
         double XSpeed = clamp(DRIVE_KP * dx, -1.0, 1.0) * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
         double YSpeed = clamp(DRIVE_KP * dy, -1.0, 1.0) * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
-        double RotSpeed = clamp(THETA_KP * headingError, -2.0, 2.0);
+        double RotSpeed = clamp(THETA_KP * headingError, -1.0, 1.0) * RotationsPerSecond.of(0.75).in(RadiansPerSecond);
 
         // Apply a field-centric request with the computed velocities
         return new FieldCentric()
-                .withVelocityX(XSpeed)
-                .withVelocityY(YSpeed)
+                .withVelocityX(XSpeed * Constants.driverstationFlip)
+                .withVelocityY(YSpeed * Constants.driverstationFlip)
                 .withRotationalRate(RotSpeed)
                 .apply(parameters, modulesToApply);
     }

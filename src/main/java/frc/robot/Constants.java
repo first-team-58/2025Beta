@@ -7,7 +7,7 @@ import static edu.wpi.first.units.Units.RotationsPerSecond;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj2.command.button.CommandPS4Controller;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.generated.TunerConstants;
 
 public class Constants {
@@ -43,11 +43,25 @@ public class Constants {
         private static final Pose2d speaker_blue = new Pose2d(-0.0381, 5.547868, Rotation2d.fromDegrees(180));
         public static final Pose2d speaker = driverstationBool ? speaker_blue : mirrorPoseOnField(speaker_blue);
 
+        // speaker shot
+        private static final Pose2d speaker_shot_blue = new Pose2d(1.5, 5.5, Rotation2d.fromDegrees(0));
+        public static final Pose2d speaker_shot = driverstationBool ? speaker_shot_blue
+                : mirrorPoseOnField(speaker_shot_blue);
+
+        // pass
         private static final Pose2d pass_blue = new Pose2d(1.5, 7.25, Rotation2d.fromDegrees(180));
         public static final Pose2d pass = driverstationBool ? pass_blue : mirrorPoseOnField(pass_blue);
+
+        // pass shot
+        private static final Pose2d pass_shot_blue = new Pose2d(9.78, 1.25, Rotation2d.fromDegrees(-40));
+        public static final Pose2d pass_shot = driverstationBool ? pass_shot_blue : mirrorPoseOnField(pass_shot_blue);
+
+        // amp shot
+        private static final Pose2d amp_shot_blue = new Pose2d(2, 7.7, Rotation2d.fromDegrees(-90));
+        public static final Pose2d amp_shot = driverstationBool ? amp_shot_blue : mirrorPoseOnField(amp_shot_blue);
     }
 
     public static class controllers {
-        public static final CommandPS4Controller driver = new CommandPS4Controller(0);
+        public static final CommandXboxController driver = new CommandXboxController(0);
     }
 }
