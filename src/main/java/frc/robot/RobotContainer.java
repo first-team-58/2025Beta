@@ -74,7 +74,8 @@ public class RobotContainer {
             .withVelocityX(-controllers.driver.getLeftY() * MaxSpeed)
             .withVelocityY(-controllers.driver.getLeftX() * MaxSpeed)
             .withRotationalRate(-controllers.driver.getRightX() * MaxAngularRate)
-            .withTx(LimelightHelpers.getTX("limelight-threeg"))));
+            .withTx(LimelightHelpers.getTX("limelight-threeg"))
+            .withTy(LimelightHelpers.getTY("limelight-threeg"))));
 
     // reset pose
     controllers.driver.back()
