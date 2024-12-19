@@ -29,7 +29,7 @@ public class DriveWithTargetRequest implements SwerveRequest {
 
     // This is the maximum speed and rotation speed defined elsewhere
     // Adjust if needed or leave as is.
-    private static final double TX_KP = 0.05; // Lateral gain from tx
+    private static final double TX_KP = 0.15; // Lateral gain from tx
 
     /**
      * Sets the supplier for field-centric X velocity (m/s).
@@ -85,8 +85,8 @@ public class DriveWithTargetRequest implements SwerveRequest {
 
         // Lateral direction is perpendicular to forward: if forward is (fwdX, fwdY),
         // then lateral is (-fwdY, fwdX).
-        double latX = -fwdY;
-        double latY = fwdX;
+        double latX = fwdY;
+        double latY = -fwdX;
 
         // Add lateral correction
         finalXSpeed += lateralCorrection * latX;

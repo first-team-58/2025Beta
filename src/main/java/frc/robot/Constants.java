@@ -16,6 +16,10 @@ public class Constants {
             .orElse(DriverStation.Alliance.Blue) == DriverStation.Alliance.Blue;
     public static final double driverstationFlip = driverstationBool ? 1 : -1;
 
+    public static class controllers {
+        public static final CommandXboxController driver = new CommandXboxController(0);
+    }
+
     public static class speeds {
         public static double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired
                                                                                             // top
@@ -59,9 +63,5 @@ public class Constants {
         // amp shot
         private static final Pose2d amp_shot_blue = new Pose2d(2, 7.7, Rotation2d.fromDegrees(-90));
         public static final Pose2d amp_shot = driverstationBool ? amp_shot_blue : mirrorPoseOnField(amp_shot_blue);
-    }
-
-    public static class controllers {
-        public static final CommandXboxController driver = new CommandXboxController(0);
     }
 }
