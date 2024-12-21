@@ -6,38 +6,52 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 
+import edu.wpi.first.math.MatBuilder;
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.Nat;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.controllers;
 import frc.robot.Constants.field;
+import frc.robot.Constants.oculus;
 import frc.robot.generated.TunerConstants;
 import frc.robot.requests.DriveToPoseRequest;
 import frc.robot.requests.DriveWithTargetRequest;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.vision.LimelightHelpers;
+import frc.robot.vision.OculusProcessor;
 
 public class RobotContainer {
+
+  /******************* Swerve *******************/
   private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
   private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 rev/sec
+
   /* Setting up bindings for necessary control of the swerve drive platform */
   private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
       .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1)
       .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // Use open-loop control for drive
-
   private final DriveToPoseRequest driveToTarget = new DriveToPoseRequest();
-
   private final DriveWithTargetRequest driveWithTargetRequest = new DriveWithTargetRequest();
 
   private final Telemetry logger = new Telemetry(MaxSpeed);
 
-  public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
+  public final CommandSwerveDrivetrain _drivetrain = TunerConstants.createDrivetrain();
+
+  /******************* Subsystems *******************/
+
+  public final OculusProcessor _oculus = new OculusProcessor();
 
   /* Path follower */
   private final SendableChooser<Command> autoChooser;
@@ -51,26 +65,26 @@ public class RobotContainer {
 
   private void configureBindings() {
     // normal
-    drivetrain.setDefaultCommand(
-        drivetrain.applyRequest(() -> drive
+    _drivetrain.setDefaultCommand(
+        _drivetrain.applyRequest(() -> drive
             .withVelocityX(-controllers.driver.getLeftY() * MaxSpeed)
             .withVelocityY(-controllers.driver.getLeftX() * MaxSpeed)
             .withRotationalRate(-controllers.driver.getRightX() * MaxAngularRate)));
 
     // amp
     controllers.driver.leftTrigger().whileTrue(
-        drivetrain.applyRequest(() -> driveToTarget.withPose(field.amp_shot)));
+        _drivetrain.applyRequest(() -> driveToTarget.withPose(field.amp_shot)));
 
     // speaker
-    controllers.driver.rightTrigger().whileTrue(drivetrain.applyRequest(() -> driveToTarget
+    controllers.driver.rightTrigger().whileTrue(_drivetrain.applyRequest(() -> driveToTarget
         .withPose(field.speaker_shot)));
 
     // pass
-    controllers.driver.leftBumper().whileTrue(drivetrain.applyRequest(() -> driveToTarget.withPose(field.pass_shot)));
+    controllers.driver.leftBumper().whileTrue(_drivetrain.applyRequest(() -> driveToTarget.withPose(field.pass_shot)));
 
     // collect
     controllers.driver.rightBumper().whileTrue(
-        drivetrain.applyRequest(() -> driveWithTargetRequest
+        _drivetrain.applyRequest(() -> driveWithTargetRequest
             .withVelocityX(-controllers.driver.getLeftY() * MaxSpeed)
             .withVelocityY(-controllers.driver.getLeftX() * MaxSpeed)
             .withRotationalRate(-controllers.driver.getRightX() * MaxAngularRate)
@@ -79,12 +93,23 @@ public class RobotContainer {
 
     // reset pose
     controllers.driver.back()
-        .onTrue(drivetrain.runOnce(() -> drivetrain.resetPose(new Pose2d(0, 0, new Rotation2d(0)))));
+        .onTrue(_drivetrain.runOnce(() -> _drivetrain.resetPose(new Pose2d(0, 0, new Rotation2d(0)))));
 
     // reset heading
-    controllers.driver.start().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
+    controllers.driver.start().onTrue(_drivetrain.runOnce(() -> _drivetrain.seedFieldCentric()));
 
-    drivetrain.registerTelemetry(logger::telemeterize);
+    _drivetrain.registerTelemetry(logger::telemeterize);
+  }
+
+  public void periodic() {
+    if (_oculus.getRobotPose() != null) {
+      // Define low stddev values for x, y, and heading
+
+      _drivetrain.addVisionMeasurement(
+          _oculus.getRobotPose(),
+          Utils.fpgaToCurrentTime(_oculus.getTimestamp()),
+          oculus.stddev);
+    }
   }
 
   public Command getAutonomousCommand() {

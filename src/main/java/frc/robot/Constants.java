@@ -4,8 +4,16 @@ import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
+import edu.wpi.first.math.MatBuilder;
+import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.Nat;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.generated.TunerConstants;
@@ -21,9 +29,8 @@ public class Constants {
     }
 
     public static class speeds {
-        public static double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired
-                                                                                            // top
-        public static double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation/sec
+        public static double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // 5.21 m/s
+        public static double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 rotation/sec
         public static double SlowSpeed = 3; // ms/s
         public static double deadband = 0.1 * MaxSpeed;
         public static double deadbandAngular = 0.1 * MaxAngularRate;
@@ -63,5 +70,20 @@ public class Constants {
         // amp shot
         private static final Pose2d amp_shot_blue = new Pose2d(2, 7.7, Rotation2d.fromDegrees(-90));
         public static final Pose2d amp_shot = driverstationBool ? amp_shot_blue : mirrorPoseOnField(amp_shot_blue);
+    }
+
+    public static class oculus {
+        public static final Transform2d robotToOculus = new Transform2d(
+                new Translation2d(
+                        Units.inchesToMeters(0.0),
+                        Units.inchesToMeters(0.0)),
+                new Rotation2d(Units.degreesToRadians(0.0)));
+        public static final Matrix<N3, N1> stddev = MatBuilder.fill(
+                Nat.N3(),
+                Nat.N1(),
+                0.005, // x stddev in meters
+                0.005, // y stddev in meters
+                0.01 // heading stddev in radians
+        );
     }
 }
