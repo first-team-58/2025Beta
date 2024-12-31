@@ -1,86 +1,92 @@
 package frc.robot.requests;
 
-import static edu.wpi.first.units.Units.MetersPerSecond;
-import static edu.wpi.first.units.Units.RadiansPerSecond;
-import static edu.wpi.first.units.Units.RotationsPerSecond;
-
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain.SwerveControlParameters;
+import com.ctre.phoenix6.swerve.SwerveModule;
 
+import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.util.Units;
 import frc.robot.Constants;
 import frc.robot.generated.TunerConstants;
+import frc.robot.util.riot_angles;
 
-/**
- * A SwerveRequest that drives the robot to a given target pose using a simple
- * proportional feedback controller.
- * 
- * This request checks the current pose from SwerveControlParameters and
- * computes
- * a velocity command to move the robot toward the target. Once within
- * tolerance,
- * it applies an Idle request.
- */
 public class DriveToPoseRequest implements SwerveRequest {
 
     private Pose2d targetPose;
 
-    // Simple gains and tolerances
-    private static final double DRIVE_KP = 1.0; // Proportional gain for drive
-    private static final double THETA_KP = 3.0; // Proportional gain for heading
-    private static final double DRIVE_TOLERANCE = 0.05; // meters
-    private static final double THETA_TOLERANCE = Math.toRadians(2.0); // radians
+    // Pull in speed/accel limits from your existing constants:
+    private static final double kMaxTransSpeed = TunerConstants.kSpeedAt12Volts
+            .in(edu.wpi.first.units.Units.MetersPerSecond);
 
-    /**
-     * Constructs a request to drive to the specified target pose.
-     * 
-     * @param targetPose The desired final pose of the robot.
-     */
-    public DriveToPoseRequest withPose(Pose2d targetPose) {
-        this.targetPose = targetPose;
+    // Example trapezoid profile constraints for translation
+    private static final TrapezoidProfile.Constraints kTransConstraints = new TrapezoidProfile.Constraints(
+            kMaxTransSpeed, // max velocity (m/s)
+            kMaxTransSpeed // max accel (m/s^2) - adjust as needed
+    );
+
+    // PID gains for translation
+    private static final double kTransKp = 1.0;
+    private static final double kTransKi = 0.0;
+    private static final double kTransKd = 0.0;
+
+    // Tolerances
+    private static final double kDriveToleranceMeters = 0.05; // how close in XY to be "done"
+    private static final double kRotToleranceRadians = Units.degreesToRadians(2.0);
+
+    // Create separate controllers for X, Y, and Heading
+    private final ProfiledPIDController xController = new ProfiledPIDController(
+            kTransKp, kTransKi, kTransKd, kTransConstraints);
+
+    private final ProfiledPIDController yController = new ProfiledPIDController(
+            kTransKp, kTransKi, kTransKd, kTransConstraints);
+
+    public DriveToPoseRequest() {
+    }
+
+    public DriveToPoseRequest withPose(Pose2d pose) {
+        this.targetPose = pose;
         return this;
     }
 
     @Override
-    public StatusCode apply(SwerveControlParameters parameters,
-            com.ctre.phoenix6.swerve.SwerveModule... modulesToApply) {
+    public StatusCode apply(SwerveControlParameters parameters, SwerveModule... modulesToApply) {
         Pose2d currentPose = parameters.currentPose;
 
-        // Calculate translation error
-        double dx = targetPose.getX() - currentPose.getX();
-        double dy = targetPose.getY() - currentPose.getY();
-        double distanceError = Math.sqrt(dx * dx + dy * dy);
+        // 1) Check distance & heading error
+        double distanceError = currentPose.getTranslation()
+                .getDistance(targetPose.getTranslation());
+        double headingError = riot_angles.getHeadingError(
+                currentPose.getRotation().getRadians(),
+                targetPose.getRotation().getRadians());
 
-        // Calculate heading error
-        double currentHeading = currentPose.getRotation().getRadians();
-        double targetHeading = targetPose.getRotation().getRadians();
-        double headingError = targetHeading - currentHeading;
-        // Normalize heading error to range (-pi, pi)
-        headingError = Math.atan2(Math.sin(headingError), Math.cos(headingError));
-
-        // Check if we are close enough
-        if (distanceError < DRIVE_TOLERANCE && Math.abs(headingError) < THETA_TOLERANCE) {
+        if (distanceError < kDriveToleranceMeters && Math.abs(headingError) < kRotToleranceRadians) {
+            // We are close enough: apply Idle request
             return new Idle().apply(parameters, modulesToApply);
         }
 
-        // Compute speed commands
-        double XSpeed = clamp(DRIVE_KP * dx, -1.0, 1.0) * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
-        double YSpeed = clamp(DRIVE_KP * dy, -1.0, 1.0) * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
-        double RotSpeed = clamp(THETA_KP * headingError, -1.0, 1.0) * RotationsPerSecond.of(0.75).in(RadiansPerSecond);
+        // 2) Update setpoints
+        xController.setGoal(targetPose.getX());
+        yController.setGoal(targetPose.getY());
 
-        // Apply a field-centric request with the computed velocities
-        return new FieldCentric()
-                .withVelocityX(XSpeed * Constants.driverstationFlip)
-                .withVelocityY(YSpeed * Constants.driverstationFlip)
-                .withRotationalRate(RotSpeed)
+        // 3) Calculate the output velocities
+        double xSpeed = xController.calculate(currentPose.getX());
+        double ySpeed = yController.calculate(currentPose.getY());
+
+        // 4) Clamp speeds if desired (avoid extreme overshoot)
+        xSpeed = riot_angles.clamp(xSpeed, -kMaxTransSpeed, kMaxTransSpeed);
+        ySpeed = riot_angles.clamp(ySpeed, -kMaxTransSpeed, kMaxTransSpeed);
+
+        // 5) Build the request using FieldCentricFacingAngle
+        return new SwerveRequest.FieldCentricFacingAngle()
+                // Flip if needed for driver station perspective
+                .withVelocityX(xSpeed * Constants.driverstationFlip)
+                .withVelocityY(ySpeed * Constants.driverstationFlip)
+                // We want to face the target heading
+                .withTargetDirection(Rotation2d.fromRadians(targetPose.getRotation().getRadians()))
                 .apply(parameters, modulesToApply);
-    }
-
-    /**
-     * Utility method to clamp a value between min and max.
-     */
-    private static double clamp(double val, double min, double max) {
-        return Math.max(min, Math.min(val, max));
     }
 }
