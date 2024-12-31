@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -15,17 +16,13 @@ public class Robot extends TimedRobot {
 
   public Robot() {
     m_robotContainer = new RobotContainer();
+    DriverStation.silenceJoystickConnectionWarning(true);
   }
 
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
-
-    // TODO: add pose estimator
-    // if (llMeasurement != null) {
-    // m_robotContainer.drivetrain.addVisionMeasurement(llMeasurement.pose,
-    // Utils.fpgaToCurrentTime(llMeasurement.timestampSeconds));
-    // }
+    m_robotContainer.periodic();
   }
 
   @Override
@@ -66,6 +63,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
+
   }
 
   @Override
@@ -87,6 +85,6 @@ public class Robot extends TimedRobot {
 
   @Override
   public void simulationPeriodic() {
-    m_robotContainer.drivetrain.simulationPeriodic();
+    m_robotContainer._drivetrain.simulationPeriodic();
   }
 }
