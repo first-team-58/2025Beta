@@ -1,4 +1,3 @@
-// stolen from outliers, thank you freyja
 package frc.robot.vision;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -10,14 +9,18 @@ import edu.wpi.first.networktables.IntegerPublisher;
 import edu.wpi.first.networktables.IntegerSubscriber;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.networktables.StructPublisher;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import frc.robot.Constants.oculus;
 
 public class OculusProcessor {
 
   // Configure Network Tables topics (oculus/...) to communicate with the Quest
-  // HMD
   NetworkTableInstance nt4Instance = NetworkTableInstance.getDefault();
-  NetworkTable nt4Table = nt4Instance.getTable("oculus");
+  NetworkTable nt4Table = nt4Instance.getTable("questnav");
+
   public IntegerSubscriber questMiso = nt4Table.getIntegerTopic("miso").subscribe(0);
   public IntegerPublisher questMosi = nt4Table.getIntegerTopic("mosi").publish();
 
@@ -30,9 +33,14 @@ public class OculusProcessor {
       .subscribe(new float[] { 0.0f, 0.0f, 0.0f, 0.0f });
   public FloatArraySubscriber questEulerAngles = nt4Table.getFloatArrayTopic("eulerAngles")
       .subscribe(new float[] { 0.0f, 0.0f, 0.0f });
+  public DoubleSubscriber questBattery = nt4Table.getDoubleTopic("batteryPercent").subscribe(0.0f);
+
+  private final StructPublisher<Pose2d> questnavRobotPose = nt4Table.getStructTopic("robotPose", Pose2d.struct)
+      .publish();
+  private final StringPublisher questnavTypePub = nt4Table.getStringTopic(".type").publish();
 
   public OculusProcessor() {
-
+    configureShuffleboard();
   }
 
   public float yaw_offset = 0.0f;
@@ -44,7 +52,9 @@ public class OculusProcessor {
 
   public Translation2d getOculusPosition() {
     float[] oculusPosition = questPosition.get();
-    return new Translation2d(-oculusPosition[2], oculusPosition[0]);
+    return new Translation2d(
+        oculusPosition[0],
+        oculusPosition[2]);
   }
 
   public Pose2d getOculusPose() {
@@ -53,22 +63,36 @@ public class OculusProcessor {
 
   public Pose2d getRobotPose() {
     var oculusToRobot = oculus.robotToOculus.inverse();
-    Pose2d robotPose = getOculusPose().transformBy(oculusToRobot);
-    return robotPose;
+    return getOculusPose().transformBy(oculusToRobot);
   }
 
   public double getTimestamp() {
     return questTimestamp.get();
   }
 
-  // TODO: do we need a red flip?
-  // public Pose2d getOculusPose(){
-  // // if (_driveTrain.isRedAlliance()) {
-  // // Pose2d initialPose =
-  // (firstPath.flipPath().getPreviewStartingHolonomicPose());
-  // // } else {
-  // // Pose2d initialPose = (firstPath.getPreviewStartingHolonomicPose());
-  // // }
-  // return
-  // }
+  public void configureShuffleboard() {
+    ShuffleboardTab tab = Shuffleboard.getTab("Oculus");
+    tab.addNumber("frameCount", () -> questFrameCount.get());
+    tab.addNumber("timestamp", () -> questTimestamp.get());
+    tab.addNumber("battery", () -> questBattery.get());
+
+    questnavTypePub.set("Field2d");
+    questnavRobotPose.set(getRobotPose());
+  }
+
+  public void updateQuestnavPose() {
+    questnavRobotPose.set(getRobotPose());
+  }
+
+  public void zeroPosition() {
+    if (questMiso.get() != 99) {
+      questMosi.set(1);
+    }
+  }
+
+  public void resetMosi() {
+    if (questMiso.get() == 99) {
+      questMosi.set(0);
+    }
+  }
 }

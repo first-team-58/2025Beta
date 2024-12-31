@@ -12,16 +12,12 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 
-import edu.wpi.first.math.MatBuilder;
-import edu.wpi.first.math.Matrix;
-import edu.wpi.first.math.Nat;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.numbers.N1;
-import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.Constants.controllers;
 import frc.robot.Constants.field;
 import frc.robot.Constants.oculus;
@@ -93,7 +89,8 @@ public class RobotContainer {
 
     // reset pose
     controllers.driver.back()
-        .onTrue(_drivetrain.runOnce(() -> _drivetrain.resetPose(new Pose2d(0, 0, new Rotation2d(0)))));
+        .onTrue(_drivetrain.runOnce(() -> _drivetrain.resetPose(new Pose2d(0, 0, new Rotation2d(0))))
+            .alongWith(new InstantCommand(() -> _oculus.zeroPosition())));
 
     // reset heading
     controllers.driver.start().onTrue(_drivetrain.runOnce(() -> _drivetrain.seedFieldCentric()));
@@ -102,14 +99,16 @@ public class RobotContainer {
   }
 
   public void periodic() {
-    if (_oculus.getRobotPose() != null) {
-      // Define low stddev values for x, y, and heading
 
+    if (_oculus.getRobotPose() != null) {
       _drivetrain.addVisionMeasurement(
           _oculus.getRobotPose(),
           Utils.fpgaToCurrentTime(_oculus.getTimestamp()),
           oculus.stddev);
+
     }
+    _oculus.updateQuestnavPose();
+    _oculus.resetMosi();
   }
 
   public Command getAutonomousCommand() {

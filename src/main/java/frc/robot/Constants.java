@@ -74,9 +74,12 @@ public class Constants {
 
     public static class oculus {
         public static final Transform2d robotToOculus = new Transform2d(
+                // TODO
+                // you can find this by setting both to zero, rotating 180, then dividing the
+                // resulting pose by 2 for x and y
                 new Translation2d(
-                        Units.inchesToMeters(0.0),
-                        Units.inchesToMeters(0.0)),
+                        Units.inchesToMeters(-9.45),
+                        Units.inchesToMeters(3.937)),
                 new Rotation2d(Units.degreesToRadians(0.0)));
         public static final Matrix<N3, N1> stddev = MatBuilder.fill(
                 Nat.N3(),
