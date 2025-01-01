@@ -4,7 +4,8 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 
-public class DriveHelper {
+public class riot_angles {
+
     public static Rotation2d angleToPose(Pose2d robotPose, Translation2d targetPose) {
         Translation2d currentPosition = robotPose.getTranslation();
 
@@ -17,4 +18,18 @@ public class DriveHelper {
         return angle;
     }
 
+    /**
+     * Returns a heading error in (-pi, pi).
+     */
+    public static double getHeadingError(double currentHeading, double targetHeading) {
+        double error = targetHeading - currentHeading;
+        return Math.atan2(Math.sin(error), Math.cos(error));
+    }
+
+    /**
+     * Utility method to clamp a value between min and max.
+     */
+    public static double clamp(double val, double min, double max) {
+        return Math.max(min, Math.min(val, max));
+    }
 }

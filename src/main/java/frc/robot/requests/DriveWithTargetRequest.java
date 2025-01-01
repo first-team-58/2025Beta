@@ -31,7 +31,7 @@ public class DriveWithTargetRequest implements SwerveRequest {
     // This is the maximum speed and rotation speed defined elsewhere
     // Adjust if needed or leave as is.
     private static final double TX_KP = 0.15; // Lateral gain from tx
-    private static final double SLOW_DOWN = 0.5; // Slow down factor
+    private static final double SLOW_DOWN = 0.05; // Slow down factor
 
     /**
      * Sets the supplier for field-centric X velocity (m/s).
@@ -107,8 +107,8 @@ public class DriveWithTargetRequest implements SwerveRequest {
 
         // Slow down if ty is less than 10
         if (ty < 10) {
-            finalXSpeed *= .05 * ty;
-            finalYSpeed *= .05 * ty;
+            finalXSpeed *= SLOW_DOWN * ty;
+            finalYSpeed *= SLOW_DOWN * ty;
         }
 
         // Apply using a FieldCentric request internally

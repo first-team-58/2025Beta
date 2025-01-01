@@ -4,6 +4,8 @@ import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
+import com.ctre.phoenix6.swerve.SwerveRequest;
+
 import edu.wpi.first.math.MatBuilder;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.Nat;
@@ -13,6 +15,7 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -29,6 +32,7 @@ public class Constants {
     }
 
     public static class speeds {
+        public static double MaxAcceleration = 10; // m/s TODO < no way im right
         public static double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // 5.21 m/s
         public static double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 rotation/sec
         public static double SlowSpeed = 3; // ms/s
@@ -70,6 +74,10 @@ public class Constants {
         // amp shot
         private static final Pose2d amp_shot_blue = new Pose2d(2, 7.7, Rotation2d.fromDegrees(-90));
         public static final Pose2d amp_shot = driverstationBool ? amp_shot_blue : mirrorPoseOnField(amp_shot_blue);
+
+        // zero
+        private static final Pose2d zero_blue = new Pose2d(0, 0, Rotation2d.fromDegrees(0));
+        public static final Pose2d zero = driverstationBool ? zero_blue : mirrorPoseOnField(zero_blue);
     }
 
     public static class oculus {
@@ -88,5 +96,33 @@ public class Constants {
                 0.005, // y stddev in meters
                 0.01 // heading stddev in radians
         );
+    }
+
+    public static class PID {
+        public static class trans {
+
+            // Example trapezoid profile constraints for translation
+            public static final TrapezoidProfile.Constraints kConstraints = new TrapezoidProfile.Constraints(
+                    speeds.MaxSpeed, // max velocity (m/s)
+                    speeds.MaxAcceleration // max accel (m/s^2) - adjust as needed
+            );
+
+            // PID gains for translation
+            public static final double Kp = 2.5;
+            public static final double Ki = 0.0;
+            public static final double Kd = 0.0;
+
+            // Tolerances
+            public static final double tolMeters = 0.03; // how close in XY to be "done"
+
+        }
+
+        public static class rot {
+            public static final SwerveRequest.ForwardPerspectiveValue ForwardPerspective = SwerveRequest.ForwardPerspectiveValue.BlueAlliance;
+            public static final double kP = 4;
+            public static final double continous = Units.degreesToRadians(360);
+            public static final double kTolRads = Units.degreesToRadians(1.0);
+
+        }
     }
 }

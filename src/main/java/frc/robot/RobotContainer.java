@@ -76,7 +76,7 @@ public class RobotContainer {
         .withPose(field.speaker_shot)));
 
     // pass
-    controllers.driver.leftBumper().whileTrue(_drivetrain.applyRequest(() -> driveToTarget.withPose(field.pass_shot)));
+    controllers.driver.leftBumper().whileTrue(_drivetrain.applyRequest(() -> driveToTarget.withPose(field.zero)));
 
     // collect
     controllers.driver.rightBumper().whileTrue(
